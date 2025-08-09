@@ -1,0 +1,79 @@
+groups:
+  - name: banking_session_api
+    rules:
+      # Taux d'échec de connexion élevé
+      - alert: HighFailedLoginRate
+        expr: sum(rate(banking_login_attempts_total{result="failed"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: banking-session-api
+        annotations:
+          summary: "Taux d'échec de connexion élevé"
+          description: "Plus de 10 tentatives de connexion échouées par minute pendant 2 minutes"
+
+      # Taux d'erreur HTTP élevé
+      - alert: HighErrorRate
+        expr: sum(rate(banking_errors_total[5m])) / sum(rate(banking_http_request_duration_ms_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: banking-session-api
+        annotations:
+          summary: "Taux d'erreur HTTP élevé"
+          description: "Plus de 5% d'erreurs HTTP pendant 5 minutes"
+
+      # Temps de réponse élevé
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, sum(rate(banking_http_request_duration_ms_bucket[5m])) by (le)) > 2000
+        for: 3m
+        labels:
+          severity: warning
+          service: banking-session-api
+        annotations:
+          summary: "Temps de réponse élevé"
+          description: "95% des requêtes prennent plus de 2 secondes"
+
+      # Nombre de sessions actives élevé
+      - alert: HighActiveSessions
+        expr: banking_active_sessions > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-session-api
+        annotations:
+          summary: "Nombre de sessions actives élevé"
+          description: "Plus de 1000 sessions actives simultanément"
+
+      # API indisponible
+      - alert: APIDown
+        expr: up{job="banking-session-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: banking-session-api
+        annotations:
+          summary: "API Banking Session indisponible"
+          description: "L'API Banking Session ne répond plus"
+
+      # Échecs 2FA élevés
+      - alert: High2FAFailureRate
+        expr: sum(rate(banking_2fa_attempts_total{result="failed"}[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          service: banking-session-api
+        annotations:
+          summary: "Taux d'échec 2FA élevé"
+          description: "Plus de 5 échecs de vérification 2FA par minute"
+
+      # Opérations base de données lentes
+      - alert: SlowDatabaseOperations
+        expr: histogram_quantile(0.95, sum(rate(banking_database_operation_duration_ms_bucket[5m])) by (le)) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: banking-session-api
+        annotations:
+          summary: "Opérations base de données lentes"
+          description: "95% des opérations base de données prennent plus d'1 seconde"

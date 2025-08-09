@@ -1,0 +1,235 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Banking Session API - Security Alerts",
+    "tags": ["banking", "security", "alerts"],
+    "timezone": "UTC",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🔴 Brute Force Attack Detection",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT IpAddress, COUNT(*) as attempts FROM AuditLog WHERE Action = 'LOGIN_FAILED' AND Timestamp >= DATEADD(minute, -10, GETUTCDATE()) GROUP BY IpAddress HAVING COUNT(*) >= 5",
+            "format": "table"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [1],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "1m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "count"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "1m",
+          "frequency": "30s",
+          "handler": 1,
+          "name": "Brute Force Attack",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "⚠️ Failed 2FA Spike",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action = '2FA_VERIFICATION_FAILED' AND Timestamp >= DATEADD(minute, -5, GETUTCDATE())"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [5],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "1m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "last"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "1m",
+          "frequency": "30s",
+          "handler": 1,
+          "name": "2FA Failures Spike",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 3},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "🚨 Unusual Admin Activity",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action LIKE 'ADMIN_%' AND Timestamp >= DATEADD(hour, -1, GETUTCDATE())"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [3],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "1m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "last"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "2m",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "Unusual Admin Activity",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "orange", "value": 2},
+                {"color": "red", "value": 3}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Suspicious IP Activity (Last Hour)",
+        "type": "table",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT TOP 10 IpAddress as 'IP Address', COUNT(*) as 'Failed Attempts', COUNT(DISTINCT UserId) as 'Different Users', MIN(Timestamp) as 'First Attempt', MAX(Timestamp) as 'Last Attempt' FROM AuditLog WHERE Action IN ('LOGIN_FAILED', '2FA_VERIFICATION_FAILED') AND Timestamp >= DATEADD(hour, -1, GETUTCDATE()) GROUP BY IpAddress HAVING COUNT(*) >= 3 ORDER BY COUNT(*) DESC"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Failed Attempts"},
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {"type": "color-background"}
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "steps": [
+                      {"color": "green", "value": null},
+                      {"color": "yellow", "value": 3},
+                      {"color": "red", "value": 5}
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Session Security Events Timeline",
+        "type": "timeseries",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT DATEADD(minute, DATEDIFF(minute, 0, Timestamp), 0) as time, SUM(CASE WHEN Action = 'SESSION_REVOKED' THEN 1 ELSE 0 END) as 'Révocations', SUM(CASE WHEN Action = 'SESSION_EXTENSION_FAILED' THEN 1 ELSE 0 END) as 'Extensions Échouées', SUM(CASE WHEN Action = 'SUSPICIOUS_ACTIVITY' THEN 1 ELSE 0 END) as 'Activité Suspecte' FROM AuditLog WHERE Action IN ('SESSION_REVOKED', 'SESSION_EXTENSION_FAILED', 'SUSPICIOUS_ACTIVITY') AND Timestamp >= $__timeFrom() AND Timestamp <= $__timeTo() GROUP BY DATEADD(minute, DATEDIFF(minute, 0, Timestamp), 0) ORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "stepAfter",
+              "fillOpacity": 20
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Activité Suspecte"},
+              "properties": [
+                {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 18}
+      }
+    ],
+    "schemaVersion": 36,
+    "version": 1
+  }
+}

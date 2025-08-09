@@ -1,0 +1,256 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Banking Session API - Audit & Security",
+    "tags": ["banking", "audit", "security"],
+    "timezone": "UTC",
+    "refresh": "1m",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Connexions Échouées (dernières 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action = 'LOGIN_FAILED' AND Timestamp >= DATEADD(hour, -24, GETUTCDATE())"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Tentatives 2FA Échouées",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action = '2FA_VERIFICATION_FAILED' AND Timestamp >= DATEADD(hour, -24, GETUTCDATE())"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Sessions Révoquées",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action = 'SESSION_REVOKED' AND Timestamp >= DATEADD(hour, -24, GETUTCDATE())"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 15}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Actions Admin",
+        "type": "stat",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT COUNT(*) as value FROM AuditLog WHERE Action LIKE 'ADMIN_%' AND Timestamp >= DATEADD(hour, -24, GETUTCDATE())"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "blue", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Connexions par Heure",
+        "type": "timeseries",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) as time, COUNT(*) as value FROM AuditLog WHERE Action = 'LOGIN_SUCCESS' AND Timestamp >= $__timeFrom() AND Timestamp <= $__timeTo() GROUP BY DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) ORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 20
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Échecs de Connexion par Heure",
+        "type": "timeseries",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) as time, COUNT(*) as value FROM AuditLog WHERE Action = 'LOGIN_FAILED' AND Timestamp >= $__timeFrom() AND Timestamp <= $__timeTo() GROUP BY DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) ORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "fixed", "fixedColor": "red"},
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 30
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Top 10 IP Adresses Suspectes",
+        "type": "table",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT TOP 10 IpAddress as 'Adresse IP', COUNT(*) as 'Tentatives Échouées', MAX(Timestamp) as 'Dernière Tentative' FROM AuditLog WHERE Action IN ('LOGIN_FAILED', '2FA_VERIFICATION_FAILED') AND Timestamp >= DATEADD(day, -7, GETUTCDATE()) GROUP BY IpAddress ORDER BY COUNT(*) DESC"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Tentatives Échouées"},
+              "properties": [
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "steps": [
+                      {"color": "green", "value": null},
+                      {"color": "yellow", "value": 5},
+                      {"color": "red", "value": 10}
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Actions par Type",
+        "type": "piechart",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT Action, COUNT(*) as value FROM AuditLog WHERE Timestamp >= DATEADD(day, -1, GETUTCDATE()) GROUP BY Action ORDER BY COUNT(*) DESC"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 9,
+        "title": "Extensions de Session par Résultat",
+        "type": "timeseries",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) as time, SUM(CASE WHEN Action = 'SESSION_EXTENDED' THEN 1 ELSE 0 END) as 'Succès', SUM(CASE WHEN Action = 'SESSION_EXTENSION_FAILED' THEN 1 ELSE 0 END) as 'Échecs' FROM AuditLog WHERE Action IN ('SESSION_EXTENDED', 'SESSION_EXTENSION_FAILED') AND Timestamp >= $__timeFrom() AND Timestamp <= $__timeTo() GROUP BY DATEADD(hour, DATEDIFF(hour, 0, Timestamp), 0) ORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Logs d'Audit Récents",
+        "type": "table",
+        "targets": [
+          {
+            "datasource": "BankingDB",
+            "rawSql": "SELECT TOP 50 Timestamp as 'Date/Heure', Action as 'Action', UserId as 'Utilisateur', IpAddress as 'IP', UserAgent as 'Agent', Details as 'Détails' FROM AuditLog ORDER BY Timestamp DESC"
+          }
+        ],
+        "fieldConfig": {
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Action"},
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background"
+                  }
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"options": {"LOGIN_FAILED": {"color": "red"}}, "type": "value"},
+                    {"options": {"LOGIN_SUCCESS": {"color": "green"}}, "type": "value"},
+                    {"options": {"2FA_VERIFICATION_FAILED": {"color": "orange"}}, "type": "value"}
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 32}
+      }
+    ],
+    "schemaVersion": 36,
+    "version": 1
+  }
+}

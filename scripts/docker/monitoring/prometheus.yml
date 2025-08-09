@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Banking Session API
+  - job_name: 'banking-session-api'
+    static_configs:
+      - targets: ['banking-api:8080']
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    scheme: 'http'
+    
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Redis (if redis_exporter is added later)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis:6379']
+
+  # SQL Server (if mssql_exporter is added later)
+  # - job_name: 'sqlserver'
+  #   static_configs:
+  #     - targets: ['sqlserver:1433']
+
+# Alerting configuration (basic)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Alert rules for Banking API
+rule_files:
+  - "banking_alerts.yml"

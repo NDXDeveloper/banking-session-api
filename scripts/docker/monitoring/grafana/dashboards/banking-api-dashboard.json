@@ -1,0 +1,194 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Banking Session API - Overview",
+    "tags": ["banking", "api", "monitoring"],
+    "timezone": "UTC",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Tentatives de Connexion",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(banking_login_attempts_total[5m])) by (result)",
+            "legendFormat": "{{result}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Vérifications 2FA",
+        "type": "stat", 
+        "targets": [
+          {
+            "expr": "sum(rate(banking_2fa_attempts_total[5m])) by (result)",
+            "legendFormat": "{{result}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 2},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Sessions Actives",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "banking_active_sessions",
+            "legendFormat": "Sessions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 500},
+                {"color": "red", "value": 1000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Taux d'Erreur",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(banking_errors_total[5m])) / sum(rate(banking_http_request_duration_ms_count[5m])) * 100",
+            "legendFormat": "Erreur %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Temps de Réponse HTTP",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(banking_http_request_duration_ms_bucket[5m])) by (le))",
+            "legendFormat": "50e percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(banking_http_request_duration_ms_bucket[5m])) by (le))",
+            "legendFormat": "95e percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(banking_http_request_duration_ms_bucket[5m])) by (le))",
+            "legendFormat": "99e percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "fillOpacity": 10
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Requêtes par Endpoint",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(banking_http_request_duration_ms_count[5m])) by (endpoint)",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Performance Base de Données",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(banking_database_operation_duration_ms_bucket[5m])) by (le, operation))",
+            "legendFormat": "{{operation}} - 95e percentile"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Extensions de Session",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(banking_session_extensions_total[5m])) by (result)",
+            "legendFormat": "{{result}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      }
+    ],
+    "schemaVersion": 36,
+    "version": 1
+  }
+}
